@@ -62,7 +62,6 @@
             padding-bottom: calc(100%);
             position: relative;
         }
-
     </style>
 </head>
 <body>
@@ -70,10 +69,11 @@
     </div>
 
     <script>
+        let items = [];
 
         function createMasonryLayout(containerId, columnsCount) {
             const container = document.getElementById(containerId);
-            container.innerHTML = ''; // Clear any existing content
+            container.innerHTML = ''; // Clear any existing columns
 
             let columns = [];
             for (let i = 0; i < columnsCount; i++) {
@@ -83,42 +83,43 @@
                 columns.push(column);
             }
 
-            // Generate sample data
-            const pictureBaseUrl = 'https://picsum.photos/200/';
-
-            const items = [];
-            const heights = [100,160, 200, 240, 280, 300, 350, 400, 350, 500, 520];
-            
-            for(let i=0; i<1000; i++) {
-              const height = heights[i % heights.length];
-              items.push({ src: pictureBaseUrl + height, title: 'Image ' + i, height });
-            }
-
+            // Add the existing items to the columns
             items.forEach((item, index) => {
                 let itemElement = document.createElement('div');
                 itemElement.classList.add('masonry-item');
 
+                // Check if the image is already loaded
+                let img = document.createElement('img');
+                img.src = item.src;
+                img.onload = function() {
+                    itemElement.querySelector('.skeleton-image')?.remove(); // Remove skeleton if loaded
+                };
+
                 let skeleton = document.createElement('div');
                 skeleton.classList.add('skeleton', 'skeleton-image');
                 skeleton.style.paddingBottom = `${(item.height / 200) * 100}%`;
-                itemElement.appendChild(skeleton);
-
-                let img = document.createElement('img');
-                img.src = item.src;
-                img.loading = 'lazy';
-                img.onload = function() {
-
-                    skeleton.replaceWith(img);
-                };
-                
-                itemElement.appendChild(img);
 
                 let title = document.createElement('h4');
                 title.innerText = item.title;
+
+                itemElement.appendChild(skeleton);
+                itemElement.appendChild(img);
                 itemElement.appendChild(title);
 
+                // Add the item element to the shortest column
                 columns[getShortestColumnIndex(columns)].appendChild(itemElement);
             });
+        }
+
+        function initializeMasonryItems() {
+            // Generate sample data
+            const pictureBaseUrl = 'https://picsum.photos/200/';
+            const heights = [100, 160, 200, 240, 280, 300, 350, 400, 350, 500, 520];
+
+            for (let i = 0; i < 1000; i++) {
+                const height = heights[i % heights.length];
+                items.push({ src: pictureBaseUrl + height + '?random=' + i, title: 'Image ' + i, height });
+            }
         }
 
         // Add the new image to the shortest column
@@ -136,7 +137,7 @@
             return shortestIndex;
         }
 
-        // Todo: Move image loading out of the resize logic
+        // Resize logic for adjusting number of columns
         function resizeMasonryLayout() {
             const containerWidth = document.getElementById('masonry').offsetWidth;
 
@@ -144,11 +145,15 @@
             if (containerWidth > 1200) columnsCount = 4;
             else if (containerWidth > 900) columnsCount = 3;
             else if (containerWidth > 600) columnsCount = 2;
-            
+
             createMasonryLayout('masonry', columnsCount);
         }
 
-        window.onload = resizeMasonryLayout;
+        window.onload = () => {
+            initializeMasonryItems(); // Initialize items once
+            resizeMasonryLayout(); // Create initial layout
+        };
+
         window.onresize = resizeMasonryLayout;
     </script>
 </body>
