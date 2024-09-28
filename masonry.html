@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masonry Layout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .masonry {
+            display: flex;
+            margin: 0 auto;
+            width: 90%;
+            column-gap: 20px;
+            align-items: flex-start;
+        }
+        .masonry-column {
+            flex: 1;
+            margin: 0;
+            padding: 0;
+        }
+        .masonry-item {
+            background-color: #f3f3f3;
+            margin: 0 0 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            transition: transform 0.2s;
+        }
+        .masonry-item img {
+            width: 100%;
+            display: block;
+        }
+        .masonry-item:hover {
+            transform: scale(1.05);
+        }
+
+        .skeleton {
+            background-color: #e0e0e0;
+            animation: skeleton-loading 1s linear infinite alternate;
+        }
+
+        @keyframes skeleton-loading {
+            0% {
+                background-color: #e0e0e0;
+            }
+            100% {
+                background-color: #f3f3f3;
+            }
+        }
+
+        .skeleton-image {
+            width: 100%;
+            height: 0;
+            padding-bottom: calc(100%);
+            position: relative;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="masonry" class="masonry">
+    </div>
+
+    <script>
+
+        function createMasonryLayout(containerId, columnsCount) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = ''; // Clear any existing content
+
+            let columns = [];
+            for (let i = 0; i < columnsCount; i++) {
+                let column = document.createElement('div');
+                column.classList.add('masonry-column');
+                container.appendChild(column);
+                columns.push(column);
+            }
+
+            // Generate sample data
+            const pictureBaseUrl = 'https://picsum.photos/200/';
+
+            const items = [];
+            const heights = [100,160, 200, 240, 280, 300, 350, 400, 350, 500, 520];
+            
+            for(let i=0; i<1000; i++) {
+              const height = heights[i % heights.length];
+              items.push({ src: pictureBaseUrl + height, title: 'Image ' + i, height });
+            }
+
+            items.forEach((item, index) => {
+                let itemElement = document.createElement('div');
+                itemElement.classList.add('masonry-item');
+
+                let skeleton = document.createElement('div');
+                skeleton.classList.add('skeleton', 'skeleton-image');
+                skeleton.style.paddingBottom = `${(item.height / 200) * 100}%`;
+                itemElement.appendChild(skeleton);
+
+                let img = document.createElement('img');
+                img.src = item.src;
+                img.loading = 'lazy';
+                img.onload = function() {
+
+                    skeleton.replaceWith(img);
+                };
+                
+                itemElement.appendChild(img);
+
+                let title = document.createElement('h4');
+                title.innerText = item.title;
+                itemElement.appendChild(title);
+
+                columns[getShortestColumnIndex(columns)].appendChild(itemElement);
+            });
+        }
+
+        // Add the new image to the shortest column
+        function getShortestColumnIndex(columns) {
+            let shortestIndex = 0;
+            let minHeight = columns[0].offsetHeight;
+
+            columns.forEach((column, index) => {
+                if (column.offsetHeight < minHeight) {
+                    shortestIndex = index;
+                    minHeight = column.offsetHeight;
+                }
+            });
+
+            return shortestIndex;
+        }
+
+        // Todo: Move image loading out of the resize logic
+        function resizeMasonryLayout() {
+            const containerWidth = document.getElementById('masonry').offsetWidth;
+
+            let columnsCount = 1;
+            if (containerWidth > 1200) columnsCount = 4;
+            else if (containerWidth > 900) columnsCount = 3;
+            else if (containerWidth > 600) columnsCount = 2;
+            
+            createMasonryLayout('masonry', columnsCount);
+        }
+
+        window.onload = resizeMasonryLayout;
+        window.onresize = resizeMasonryLayout;
+    </script>
+</body>
+</html>
