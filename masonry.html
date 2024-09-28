@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masonry Layout</title>
+    <title>Masonry Layout with Lazy Load</title>
     <style>
         * {
             box-sizing: border-box;
@@ -70,10 +70,59 @@
 
     <script>
         let items = [];
+        let loadedItems = 0;
+        const initialLoadCount = 10;
+        const loadMoreCount = 10;
+
+        function addMasonryItems(startIndex, count) {
+            const container = document.getElementById('masonry');
+            const currentItems = Array.from(document.querySelectorAll('.masonry-item'));
+            let columns = Array.from(document.querySelectorAll('.masonry-column'));
+
+            for (let i = startIndex; i < startIndex + count && i < items.length; i++) {
+                const itemData = items[i];
+
+                let itemElement = document.createElement('div');
+                itemElement.classList.add('masonry-item');
+
+                let skeleton = document.createElement('div');
+                skeleton.classList.add('skeleton', 'skeleton-image');
+                skeleton.style.paddingBottom = `${(itemData.height / 200) * 100}%`;
+
+                let img = document.createElement('img');
+                img.src = itemData.src;
+                img.onload = function() {
+                    skeleton.replaceWith(img);
+                };
+
+                let title = document.createElement('h4');
+                title.innerText = itemData.title;
+
+                itemElement.appendChild(skeleton);
+                itemElement.appendChild(img);
+                itemElement.appendChild(title);
+
+                if (columns.length > 0) {
+                    columns[getShortestColumnIndex(columns)].appendChild(itemElement);
+                }
+            }
+
+            loadedItems += count;
+        }
+
+        function initializeMasonryItems() {
+            const pictureBaseUrl = 'https://picsum.photos/200/';
+            const heights = [100, 160, 200, 240, 280, 300, 350, 400, 350, 500, 520];
+
+            for (let i = 0; i < 100; i++) {
+                const height = heights[i % heights.length];
+                items.push({ src: pictureBaseUrl + height + '?random=' + i, title: 'Image ' + i, height });
+            }
+        }
 
         function createMasonryLayout(containerId, columnsCount) {
             const container = document.getElementById(containerId);
-            container.innerHTML = ''; // Clear any existing columns
+            container.innerHTML = '';
 
             let columns = [];
             for (let i = 0; i < columnsCount; i++) {
@@ -83,46 +132,9 @@
                 columns.push(column);
             }
 
-            // Add the existing items to the columns
-            items.forEach((item, index) => {
-                let itemElement = document.createElement('div');
-                itemElement.classList.add('masonry-item');
-
-                // Check if the image is already loaded
-                let img = document.createElement('img');
-                img.src = item.src;
-                img.onload = function() {
-                    itemElement.querySelector('.skeleton-image')?.remove(); // Remove skeleton if loaded
-                };
-
-                let skeleton = document.createElement('div');
-                skeleton.classList.add('skeleton', 'skeleton-image');
-                skeleton.style.paddingBottom = `${(item.height / 200) * 100}%`;
-
-                let title = document.createElement('h4');
-                title.innerText = item.title;
-
-                itemElement.appendChild(skeleton);
-                itemElement.appendChild(img);
-                itemElement.appendChild(title);
-
-                // Add the item element to the shortest column
-                columns[getShortestColumnIndex(columns)].appendChild(itemElement);
-            });
+            addMasonryItems(0, initialLoadCount);
         }
 
-        function initializeMasonryItems() {
-            // Generate sample data
-            const pictureBaseUrl = 'https://picsum.photos/200/';
-            const heights = [100, 160, 200, 240, 280, 300, 350, 400, 350, 500, 520];
-
-            for (let i = 0; i < 1000; i++) {
-                const height = heights[i % heights.length];
-                items.push({ src: pictureBaseUrl + height + '?random=' + i, title: 'Image ' + i, height });
-            }
-        }
-
-        // Add the new image to the shortest column
         function getShortestColumnIndex(columns) {
             let shortestIndex = 0;
             let minHeight = columns[0].offsetHeight;
@@ -137,7 +149,6 @@
             return shortestIndex;
         }
 
-        // Resize logic for adjusting number of columns
         function resizeMasonryLayout() {
             const containerWidth = document.getElementById('masonry').offsetWidth;
 
@@ -149,9 +160,17 @@
             createMasonryLayout('masonry', columnsCount);
         }
 
+        function handleScroll() {
+            const masonry = document.getElementById('masonry');
+            if (window.innerHeight + window.pageYOffset >= masonry.offsetHeight - 200 && loadedItems < items.length) {
+                addMasonryItems(loadedItems, loadMoreCount);
+            }
+        }
+
         window.onload = () => {
-            initializeMasonryItems(); // Initialize items once
-            resizeMasonryLayout(); // Create initial layout
+            initializeMasonryItems();
+            resizeMasonryLayout();
+            window.addEventListener('scroll', handleScroll);
         };
 
         window.onresize = resizeMasonryLayout;
